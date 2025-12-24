@@ -9,7 +9,6 @@ import numpy as np
 import cv2
 import os
 
-
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 
