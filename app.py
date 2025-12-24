@@ -9,14 +9,10 @@ import numpy as np
 import cv2
 import os
 
-# ===============================
-# DEVICE
-# ===============================
+
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
-# ===============================
-# MODEL DEFINITION
-# ===============================
+
 class PneumoniaCNN(nn.Module):
     def __init__(self):
         super().__init__()
@@ -26,9 +22,7 @@ class PneumoniaCNN(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-# ===============================
-# DATA LOADERS
-# ===============================
+
 def get_dataloaders(data_dir, batch_size=16):
     # Augmentation for train
     train_tfms = transforms.Compose([
@@ -63,9 +57,7 @@ def get_dataloaders(data_dir, batch_size=16):
 
     return train_loader, val_loader
 
-# ===============================
-# TRAINING FUNCTION
-# ===============================
+
 def train_model(model, train_loader, epochs=10):
     # Compute class weights for loss
     class_counts = [0]*2
@@ -91,9 +83,7 @@ def train_model(model, train_loader, epochs=10):
     torch.save(model.state_dict(), "pneumonia_model.pth")
     st.write("Model training finished and saved!")
 
-# ===============================
-# PREDICTION FUNCTION
-# ===============================
+
 def predict_image(model, img_pil):
     tfm = transforms.Compose([
         transforms.Resize((224,224)),
@@ -107,9 +97,7 @@ def predict_image(model, img_pil):
         pred = np.argmax(probs)
     return pred, probs
 
-# ===============================
-# GRAD-CAM FUNCTION
-# ===============================
+
 def generate_gradcam(model, img_pil):
     model.eval()
     gradients, activations = None, None
@@ -154,34 +142,32 @@ def generate_gradcam(model, img_pil):
     result = cv2.addWeighted(img, 0.6, heatmap, 0.4, 0)
     return result
 
-# ===============================
-# STREAMLIT APP
-# ===============================
+
 st.title("Pneumonia Detection with Grad-CAM")
 
-# Upload an image
+
 uploaded_file = st.file_uploader("Upload a chest X-ray", type=["jpg","jpeg","png"])
 if uploaded_file is not None:
     img = Image.open(uploaded_file).convert("RGB")
     st.image(img, caption="Uploaded X-ray", use_column_width=True)
 
-    # Load model
+    
     model = PneumoniaCNN().to(device)
     model.load_state_dict(torch.load("pneumonia_model.pth", map_location=device))
     model.eval()
 
-    # Predict
+  
     pred, probs = predict_image(model, img)
     st.write("Prediction:", "Normal" if pred==0 else "Pneumonia")
     st.write("Confidence: Normal {:.2f}% | Pneumonia {:.2f}%".format(probs[0]*100, probs[1]*100))
 
-    # Grad-CAM
+   
     if st.button("Show Grad-CAM"):
         cam_img = generate_gradcam(model, img)
         st.image(cam_img, caption="Grad-CAM", use_column_width=True)
 
-# Optional: retrain model if you have data folder
+
 if st.checkbox("Retrain model (requires dataset in 'data/' folder)"):
     train_loader, val_loader = get_dataloaders("data")
     model = PneumoniaCNN().to(device)
-    train_model(model, train_loader, epochs=5)  # You can increase epochs
+    train_model(model, train_loader, epochs=5)  
