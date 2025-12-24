@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+pneumonia_model.pth
+data/
